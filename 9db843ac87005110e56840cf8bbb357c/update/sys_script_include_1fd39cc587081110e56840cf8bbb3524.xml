@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_script_include">
+    <sys_script_include action="INSERT_OR_UPDATE">
+        <access>public</access>
+        <active>true</active>
+        <api_name>x_538834_sandboxse.SLO_MedianElapsedTime_GBUs</api_name>
+        <caller_access/>
+        <client_callable>false</client_callable>
+        <description>From here: https://community.servicenow.com/community?id=community_question&amp;sys_id=15454537db63b388fff8a345ca9619ee&amp;anchor=answer_9f3d6d31db2ed81466f1d9d96896199a&amp;view_source=searchResult</description>
+        <name>SLO_MedianElapsedTime_GBUs</name>
+        <script><![CDATA[var SLO_MedianElapsedTime_GBUs = Class.create();
+SLO_MedianElapsedTime_GBUs.prototype = {
+	initialize: function() {
+	},
+    medianCalculation: function(filter,breakdownGbu,elementGbu,indicatorSLO) {
+        var filterGbu = filter;
+        var med = new GlideRecord('task_sla');
+        med.addEncodedQuery(filterGbu);
+        med.orderBy('duration');
+        med.query();
+
+        var result;
+
+        var numbers = [];
+        while (med.next()) {
+            numbers.push(new GlideDateTime(med.duration).getNumericValue());
+        }
+        median(numbers);
+
+        function median(numbers) {
+            // median of [3, 5, 4, 4, 1, 1, 2, 3] = 3
+            var median = 0,
+                numsLen = numbers.length;
+            if (
+                numsLen % 2 === 0 // is even
+            ) {
+                // average of two middle numbers
+                median = (numbers[numsLen / 2 - 1] + numbers[numsLen / 2]) / 2;
+            } else { // is odd
+                // middle number only
+                median = numbers[(numsLen - 1) / 2];
+            }
+            result = median / 86400000;
+        }
+
+		var indicator = indicatorSLO;
+        var breakdown = breakdownGbu;
+        var element = elementGbu;
+        var value = result;
+
+        var date = new GlideDate();
+        date.setDayOfMonthUTC(1);
+        var start = parseInt(date.toString().replace('-', ''));
+
+        var score = new GlideRecord('pa_scores'); //this might be pa_scoresl1 now.
+        score.addQuery('indicator', indicator);
+        score.addQuery('breakdown', breakdown);
+        score.addQuery('element', element);
+        score.addQuery('start_at', start);
+        score.query();
+        if (score.next()) {
+            score.setWorkflow(false);
+            if (isNaN(value)) {
+                value = 0;
+            }
+            score.value = value;
+            score.update();
+
+        } else {
+            score.initialize();
+            score.indicator = indicator;
+            score.breakdown = breakdown;
+            score.element = element;
+            score.start_at = date.getByFormat("dd-MMM-yy");
+            if (isNaN(value)) {
+                value = 0;
+            }
+            score.value = value;
+            score.insert();
+
+        }
+    },
+
+    type: 'SLO_MedianElapsedTime_GBUs'
+};]]></script>
+        <sys_class_name>sys_script_include</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2022-06-10 19:56:46</sys_created_on>
+        <sys_id>1fd39cc587081110e56840cf8bbb3524</sys_id>
+        <sys_mod_count>2</sys_mod_count>
+        <sys_name>SLO_MedianElapsedTime_GBUs</sys_name>
+        <sys_package display_value="SandBoxServiceNow" source="x_538834_sandboxse">9db843ac87005110e56840cf8bbb357c</sys_package>
+        <sys_policy>read</sys_policy>
+        <sys_scope display_value="SandBoxServiceNow">9db843ac87005110e56840cf8bbb357c</sys_scope>
+        <sys_update_name>sys_script_include_1fd39cc587081110e56840cf8bbb3524</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2022-06-10 20:47:34</sys_updated_on>
+    </sys_script_include>
+</record_update>
